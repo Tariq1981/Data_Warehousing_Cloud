@@ -24,25 +24,81 @@ model_schema_create = "CREATE SCHEMA IF NOT EXISTS MODEL;"
 # CREATE TABLES
 
 staging_events_table_create= ("""
-
+SET SEARCH_PATH TO STAGING;
+CREATE TABLE IT NOT EXISTS EVENTS
+(
+    artist              VARCHAR(100),
+    auth                VARCHAR(30),
+    firstName           VARCHAR(30)
+    gender              VARCHAR(1),
+    itemInSession       INTEGER,
+    lastName            VARCHAR(30),
+    length              FLOAT,
+    level               VARCHAR(10),
+    location            VARCHAR(50),
+    method              VARCHAR(10),
+    page                VARCHAR(15),
+    registration        BIGINT,
+    sessionId           INTEGER,
+    song                VARCHAR(100),
+    status              SMALLINT,
+    ts                  BIGINT,
+    userAgent           VARCHAR(300),
+    userId              INTEGER
+);
 """)
 
 staging_songs_table_create = ("""
+SET SEARCH_PATH TO STAGING;
+CREATE TABLE IT NOT EXISTS SONGS
+(
+    num_songs           INTEGER,
+    artist_id           VARCHAR(30),
+    artist_latitude     FLOAT,
+    artist_longitude    FLOAT,
+    artist_location     VARCHAR(50),
+    artist_name         VARCHAR(100),
+    song_id             VARCHAR(30),
+    title               VARCHAR(100),
+    duration            FLOAT,
+    year                SMALLINT
+);
 """)
 
 songplay_table_create = ("""
+SET SEARCH_PATH TO MODEL;
+CREATE TABLE IT NOT EXISTS SONGPlAY
+(
+    songplay_id         INTEGER NOT NULL IDENTITY(1,1),
+    start_time          BIGINT  NOT NULL,
+    user_id             INTEGER NOT NULL,
+    level               VARCHAR(10),
+    song_id             VARCHAR(30),
+    artist_id           VARCHAR(30),
+    session_id          INTEGER,
+    location            VARCHAR(50),
+    user_agent          VARCHAR(300),
+);
 """)
 
 user_table_create = ("""
+SET SEARCH_PATH TO MODEL;
+
 """)
 
 song_table_create = ("""
+SET SEARCH_PATH TO MODEL;
+
 """)
 
 artist_table_create = ("""
+SET SEARCH_PATH TO MODEL;
+
 """)
 
 time_table_create = ("""
+SET SEARCH_PATH TO MODEL;
+
 """)
 
 # STAGING TABLES
