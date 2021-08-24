@@ -67,7 +67,7 @@ CREATE TABLE IT NOT EXISTS SONGS
 
 songplay_table_create = ("""
 SET SEARCH_PATH TO MODEL;
-CREATE TABLE IT NOT EXISTS SONGPlAY
+CREATE TABLE IT NOT EXISTS SONGPlAYS
 (
     songplay_id         INTEGER NOT NULL IDENTITY(1,1),
     start_time          BIGINT  NOT NULL,
@@ -83,22 +83,52 @@ CREATE TABLE IT NOT EXISTS SONGPlAY
 
 user_table_create = ("""
 SET SEARCH_PATH TO MODEL;
-
+CREATE TABLE IT NOT EXISTS USERS
+(
+    user_id             INTEGER NOT NULL,
+    first_name          VARCHAR(30),
+    last_name           VARCHAR(30),
+    gender              VARCHAR(1),
+    level               VARCHAR(10)
+);
 """)
 
 song_table_create = ("""
 SET SEARCH_PATH TO MODEL;
-
+CREATE TABLE IT NOT EXISTS SONGS
+(
+    song_id             VARCHAR(30) NOT NULL,
+    title               VARCHAR(100),
+    artist_id           VARCHAR(30) NOT NULL,
+    year                INTEGER,
+    duration            FLOAT   NOT NULL,
+);    
 """)
 
 artist_table_create = ("""
 SET SEARCH_PATH TO MODEL;
-
+CREATE TABLE IT NOT EXISTS ARTISTS
+(
+    artist_id           VARCHAR(30) NOT NULL,
+    name                VARCHAR(100),
+    location            VARCHAR(50),
+    lattitude           FLOAT,
+    longitude           FLOAT
+);
 """)
 
 time_table_create = ("""
 SET SEARCH_PATH TO MODEL;
-
+CREATE TABLE IT NOT EXISTS TIME
+(
+    start_time          BIGINT,
+    hour                SMALLINT,
+    day                 SMALLINT,
+    week                SMALLINT,
+    month               SMALLINT,
+    year                SMALLINT,
+    weekday             SMALLINT
+);
 """)
 
 # STAGING TABLES
