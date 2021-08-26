@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS ARTISTS
     artist_id           VARCHAR(30) NOT NULL,
     name                VARCHAR(500),
     location            VARCHAR(500),
-    lattitude           FLOAT,
+    latitude           FLOAT,
     longitude           FLOAT,
     PRIMARY KEY(artist_id)
 )
@@ -209,34 +209,35 @@ WHERE MODEL.USERS.user_id = SUSR.userId AND MODEL.USERS.level <> SUSR.level;
 """)
 
 song_table_insert = ("""
-INSERT INTO MODEL.SONG(song_id,title,artist_id,year,duration)
-SELECT  song_id,
-        title,
-        artist_id,
-        year,
-        duration
+INSERT INTO MODEL.SONGS(song_id,title,artist_id,year,duration)
+SELECT  SS.song_id,
+        SS.title,
+        SS.artist_id,
+        SS.year,
+        SS.duration
 FROM STAGING.SONGS SS
 LEFT OUTER JOIN MODEL.SONGS MS ON MS.song_id = SS.song_id
-WHERE M.song_id IS NULL;
+WHERE MS.song_id IS NULL;
 """)
 
 artist_table_insert = ("""
-INSERT  INTO MODEL.ARTISTS(artist_id,name,location,lattitude,longitude)
-SELECT AR.artist_id,AR.name,AR.artist_location,AR.artist_lattitude,AR.artist_longitude
+INSERT  INTO MODEL.ARTISTS(artist_id,name,location,latitude,longitude)
+SELECT AR.artist_id,AR.artist_name,AR.artist_location,AR.artist_latitude,AR.artist_longitude
 FROM 
 (
-    SELECT artist_id,name,artist_location,artist_lattitude,artist_longitude
+    SELECT artist_id,artist_name,artist_location,artist_latitude,artist_longitude
     FROM
     (
         SELECT      artist_id,
-                    name,
+                    artist_name,
                     artist_location,
-                    artist_lattitude,
+                    artist_latitude,
                     artist_longitude,
                     ROW_NUMBER() OVER(PARTITION BY artist_id ORDER BY year DESC,
-                                    CASE WHEN artist_lattitude IS NULL THEN 0 ELSE 1 END DESC,
-                                    CASE WHEN artist_location IS NULL THEN 0 ELSE 1 END DESC,
+                                    CASE WHEN artist_latitude IS NULL THEN 0 ELSE 1 END DESC,
+                                    CASE WHEN artist_location IS NULL THEN 0 ELSE 1 END DESC
                                     ) R_RANK
+        FROM STAGING.SONGS
     ) X
     WHERE R_RANK=1
 ) AR
@@ -245,26 +246,30 @@ WHERE MAR.artist_id IS NULL;
 
 UPDATE MODEL.ARTISTS
 SET location=COALESCE(AR.artist_location,location),
-    lattitude=COALESCE(AR.artist_lattitude,lattitude),
+    latitude=COALESCE(AR.artist_latitude,latitude),
     longitude=COALESCE(AR.artist_longitude,longitude)
+FROM    
 (
-    SELECT artist_id,name,artist_location,artist_lattitude,artist_longitude
+    SELECT artist_id,artist_name,artist_location,artist_latitude,artist_longitude
     FROM
     (
         SELECT      artist_id,
-                    name,
+                    artist_name,
                     artist_location,
-                    artist_lattitude,
+                    artist_latitude,
                     artist_longitude,
                     ROW_NUMBER() OVER(PARTITION BY artist_id ORDER BY year DESC,
-                                    CASE WHEN artist_lattitude IS NULL THEN 0 ELSE 1 END DESC,
-                                    CASE WHEN artist_location IS NULL THEN 0 ELSE 1 END DESC,
+                                    CASE WHEN artist_latitude IS NULL THEN 0 ELSE 1 END DESC,
+                                    CASE WHEN artist_location IS NULL THEN 0 ELSE 1 END DESC
                                     ) R_RANK
+        FROM STAGING.SONGS
     ) X
     WHERE R_RANK=1
 ) AR
-WHERE MODEL.ARTISTS.artist_id=AR.artist_id;
-
+WHERE MODEL.ARTISTS.artist_id=AR.artist_id AND 
+      (MODEL.ARTISTS.location <> AR.artist_location OR 
+       MODEL.ARTISTS.latitude <> AR.artist_latitude OR
+       MODEL.ARTISTS.longitude <> AR.artist_longitude);
 """)
 
 time_table_insert = ("""
@@ -297,4 +302,4 @@ copy_table_queries = [staging_events_copy, staging_songs_copy]
 #copy_table_queries = [staging_songs_copy]
 #insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
 #temp for test
-insert_table_queries = [user_table_insert]
+insert_table_queries = [time_table_insert]
