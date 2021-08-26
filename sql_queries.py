@@ -45,7 +45,8 @@ CREATE TABLE IF NOT EXISTS EVENTS
     ts                  BIGINT,
     userAgent           VARCHAR(500),
     userId              INTEGER
-);
+)
+diststyle even;
 """)
 #PRIMARY KEY(userId,ts,sessionId)
 
@@ -64,7 +65,8 @@ CREATE TABLE IF NOT EXISTS SONGS
     duration            FLOAT,
     year                SMALLINT
     
-);
+)
+diststyle even;
 """)
 #PRIMARY KEY(song_id)
 songplay_table_create = ("""
@@ -146,13 +148,19 @@ diststyle all;
 staging_events_copy = ("""
 COPY {} FROM {} 
 credentials 'aws_iam_role={}'
-FORMAT AS json {};
+FORMAT AS json {}
+COMPUPDATE OFF 
+STATUPDATE OFF
+;
 """).format("STAGING.EVENTS",config['S3']['LOG_DATA'],config['IAM_ROLE']['ARN'],config['S3']['LOG_JSONPATH'])
 
 staging_songs_copy = ("""
 COPY {} FROM {} 
 credentials 'aws_iam_role={}'
-FORMAT AS json 'auto';
+FORMAT AS json 'auto'
+COMPUPDATE OFF
+STATUPDATE OFF
+;
 """).format("STAGING.SONGS",config['S3']['SONG_DATA'],config['IAM_ROLE']['ARN'])
 
 
@@ -160,18 +168,43 @@ FORMAT AS json 'auto';
 
 songplay_table_insert = ("""
 INSERT INTO MODEL.SONGPlAYS(start_time,user_id,level,song_id,artist_id,session_id,location,user_agent)
-SELECT      E.ts,
-            E.userId,
-            E.level,
-            S.song_id,
-            S.artist_id,
-            E.sessionId,
-            E.location,
-            E.userAgent            
-FROM STAGING.EVENTS E 
-LEFT OUTER JOIN STAGING.SONGS S ON E.song = S.title AND E.artist = S.artist_name 
-LEFT OUTER JOIN MODEL.SONGPLAYS TGT ON TGT.start_time = E.ts AND TGT.user_id = E.userId AND TGT.session_id = E.sessionId
-WHERE TGT.start_time is null AND page='NextSong';
+SELECT      SRC.ts,
+            SRC.userId,
+            SRC.level,
+            SRC.song_id,
+            SRC.artist_id,
+            SRC.sessionId,
+            SRC.location,
+            SRC.userAgent
+from
+(
+	select E.ts,E.userId,E.level,S.song_id,S.artist_id,E.sessionId,E.location,E.userAgent
+	from 
+	(
+		select ts,userId,level,sessionId,location,userAgent,song,artist
+		FROM STAGING.EVENTS E
+		where page='NextSong'
+		group by ts,userId,level,sessionId,location,userAgent,song,artist
+	) E
+	
+	LEFT OUTER JOIN 
+	(
+	    SELECT  song_id,title,artist_id,artist_name
+	    FROM
+	    (
+	        SELECT  song_id,title,artist_id,artist_name,
+	                ROW_NUMBER() OVER(PARTITION BY song_id ORDER BY year desc, duration desc) R_RANK 
+	        FROM STAGING.SONGS
+	    ) X 
+	    WHERE R_RANK=1
+	) S 
+	ON E.song = S.title AND E.artist = S.artist_name 
+) SRC	
+LEFT OUTER JOIN MODEL.SONGPLAYS TGT 
+ON TGT.start_time = SRC.ts AND TGT.user_id = SRC.userId AND TGT.session_id = SRC.sessionId and coalesce(TGT.song_id,'N/A')=coalesce(SRC.song_id,'N/A')
+WHERE TGT.start_time is null;
+
+
 """)
 
 user_table_insert = ("""
@@ -215,9 +248,35 @@ SELECT  SS.song_id,
         SS.artist_id,
         SS.year,
         SS.duration
-FROM STAGING.SONGS SS
+FROM 
+(
+    SELECT  song_id,title,artist_id,year,duration
+    FROM
+    (
+        SELECT  song_id,title,artist_id,year,duration,
+                ROW_NUMBER() OVER(PARTITION BY song_id ORDER BY year desc, duration desc) R_RANK 
+        FROM STAGING.SONGS
+    ) X 
+    WHERE R_RANK=1
+) SS
 LEFT OUTER JOIN MODEL.SONGS MS ON MS.song_id = SS.song_id
 WHERE MS.song_id IS NULL;
+
+UPDATE MODEL.SONGS 
+SET duration = SS.duration
+FROM
+(
+    SELECT  song_id,title,artist_id,year,duration
+    FROM
+    (
+        SELECT  song_id,title,artist_id,year,duration,
+                ROW_NUMBER() OVER(PARTITION BY song_id ORDER BY year desc, duration desc) R_RANK 
+        FROM STAGING.SONGS
+    ) X 
+    WHERE R_RANK=1
+) SS
+WHERE MODEL.SONGS.song_id = SS.SONG_ID and MODEL.SONGS.duration <> SS.duration;
+
 """)
 
 artist_table_insert = ("""
