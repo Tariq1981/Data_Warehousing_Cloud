@@ -75,7 +75,9 @@ the staging tables: Events and Songs. It creates also the model tables: USERS,SO
  - **[sql_queries.py](/sql_queries.py)**: This python script contains all the queries
 which are related to creating or dropping the tables mentioned above.It contains the copy commands 
 which are used to stage the songs logs files in the staging tables. It also contains the 
-insert statements which are used in populating model tables from the staging tables.
+insert statements which are used in populating model tables from the staging tables. The insert
+statements have been written in a way to remove duplicates. Also, an update statements have   
+been added to be able to simulate upsert capability for each of the model tables.
 
  - **[etl.py](/etl.py)**: It runs the whole ETL process. It runs the staging commands. After the
    staging process it runs the insret statements which populate the model tables.
@@ -94,62 +96,33 @@ It also contains the path of the files to be loaded from S3.
   
   - **Query:** 
     
-      SELECT t.hour,count(*) Total FROM songplays p
-      INNER JOIN TIME t ON p.start_time=t.START_TIME
-      GROUP BY t.hour;
+        select t."hour" ,count(*) cnt 
+        from MODEL.songplays s 
+        inner join MODEL."time" t 
+        on s.start_time =t.start_time 
+        group by t."hour" ;
   - **Results:**
   From the graph below the peak hour is 4:00 PM
-    ![ERD](peak_hour.png)
-    
-- Getting the top 10 users who uses the app and their peak hour. This can be used
-  to target them by a campaign by sending them promocodes or something like this.
-  - **Query:**
-  
-      SELECT U.USER_ID,U.FIRST_NAME,U.LAST_NAME,X.HOUR Peak_Hour_User
-      FROM 
-      (
-          SELECT X.user_id,Y.hour,ROW_NUMBER()OVER(PARTITION BY Y.USER_ID ORDER BY Y.cnt DESC) R_HOUR
-          FROM
-          (
-              SELECT user_ID,count(*) cnt
-              FROM songplays p
-              group by user_id
-              order by cnt desc
-              LIMIT 10
-          ) X
-          INNER JOIN
-          (
-              SELECT user_Id,t.hour,count(*) cnt
-              FROM songplays p
-              INNER JOIN TIME t
-              ON p.start_time=t.START_TIME
-              group by user_id,t.hour
-          )Y
-          ON X.user_id = Y.user_Id
-      ) X
-      INNER JOIN USERS U
-      ON U.USER_ID=X.USER_ID
-      WHERE R_HOUR=1;
-
-- Getting the count of transactions per gender. Females were the heavy users for the 
-  app during that month.
+    ![peak_hour](peak_hour.png)
+ 
+- Getting top 10 songs with their artists names
   - **Query:**
     
-    SELECT GEnder,count(*) FROM songplays p
-    inner join users u
-    ON p.user_Id = u.user_Id
-    group by gender;
-  
-- Getting the top 10 artists whom their songs are played by the app users. 
-  Because the data is subset, so there is only one row in songplays which contains
-  artist_Id and song_Id:
-  - **Query:**
+        select title,"name",row_number()OVER(order by cnt desc) SONG_ORDER
+        from 
+        (
+            select s2.title , a."name" ,count(*) cnt 
+            from MODEL.songplays s 
+            inner join MODEL.songs s2 
+            on s.song_id = s2.song_id
+            inner join model.artists a 
+            on a.artist_id = s.artist_id 
+            group by s2.title,a."name" 
+            order by cnt desc limit 10
+        ) X;
     
-    SELECT name,count(*)cnt
-    FROM songplays p
-    inner join ARTISTS a
-    on a.artist_Id=p.artist_id
-    group by name
-    ORDER BY cnt desc
-    LIMIT 10;
-
+  - **Results:**
+  The results as in the in below image:
+    ![top_songs](top_songs.png)
+        
+   
