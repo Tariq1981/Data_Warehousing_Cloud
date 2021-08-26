@@ -275,20 +275,20 @@ WHERE MODEL.ARTISTS.artist_id=AR.artist_id AND
 time_table_insert = ("""
 INSERT INTO MODEL.TIME(start_time,hour,day,week,month,year,weekday)
 SELECT      ts,
-            EXTRACT(HOUR FROM start_time),
-            EXTRACT(DAY FROM start_time),
-            EXTRACT(w from start_time),
-            EXTRACT(MONTH FROM start_time),
-            EXTRACT(YEAR FROM start_time),
-            EXTRACT(dayofweek FROM start_time)
+            EXTRACT(HOUR FROM ST.start_time),
+            EXTRACT(DAY FROM ST.start_time),
+            EXTRACT(w from ST.start_time),
+            EXTRACT(MONTH FROM ST.start_time),
+            EXTRACT(YEAR FROM ST.start_time),
+            EXTRACT(dayofweek FROM ST.start_time)
 FROM 
 (
-    SELECT      timestamp 'epoch' + se.ts/1000 * interval '1 second' AS start_time,
+    SELECT      timestamp 'epoch' + ts/1000 * interval '1 second' AS start_time,
                 ts
-    FROM STAGING.EVENTS EV
+    FROM STAGING.EVENTS
     GROUP BY start_time,ts
 ) ST
-LEFT OUTER JOIN MODEL.TIME TGT ON EV.ts=TGT.start_time
+LEFT OUTER JOIN MODEL.TIME TGT ON ST.ts=TGT.start_time
 WHERE TGT.start_time IS NULL;
 """)
 
