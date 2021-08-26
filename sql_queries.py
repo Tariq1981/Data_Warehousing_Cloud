@@ -44,10 +44,10 @@ CREATE TABLE IF NOT EXISTS EVENTS
     status              SMALLINT,
     ts                  BIGINT,
     userAgent           VARCHAR(500),
-    userId              INTEGER,
-    PRIMARY KEY(userId,ts,sessionId)
+    userId              INTEGER
 );
 """)
+#PRIMARY KEY(userId,ts,sessionId)
 
 staging_songs_table_create = ("""
 SET SEARCH_PATH TO STAGING;
@@ -62,11 +62,11 @@ CREATE TABLE IF NOT EXISTS SONGS
     artist_name         VARCHAR(500),
     title               VARCHAR(500),
     duration            FLOAT,
-    year                SMALLINT,
-    PRIMARY KEY(song_id)
+    year                SMALLINT
+    
 );
 """)
-
+#PRIMARY KEY(song_id)
 songplay_table_create = ("""
 SET SEARCH_PATH TO MODEL;
 CREATE TABLE IF NOT EXISTS SONGPlAYS
@@ -168,8 +168,8 @@ SELECT      E.ts,
             E.sessionId,
             E.location,
             E.userAgent            
-FROM STAGING.EVENTS E
-LEFT OUTER JOIN STAGING.SONGS S ON E.song = S.title AND E.artist = S.artist_name;
+FROM STAGING.EVENTS E 
+LEFT OUTER JOIN STAGING.SONGS S ON E.song = S.title AND E.artist = S.artist_name 
 LEFT OUTER JOIN MODEL.SONGPLAYS TGT ON TGT.start_time = E.ts AND TGT.user_id = E.userId AND TGT.session_id = E.sessionId
 WHERE TGT.start_time is null AND page='NextSong';
 """)
@@ -291,6 +291,8 @@ create_schema_queries = [staging_schema_create,model_schema_create]
 create_table_queries = [staging_events_table_create, staging_songs_table_create, songplay_table_create, user_table_create, song_table_create, artist_table_create, time_table_create]
 drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songplay_table_drop, user_table_drop, song_table_drop, artist_table_drop, time_table_drop]
 copy_table_queries = [staging_events_copy, staging_songs_copy]
-#tempfor testing
+#temp for testing
 #copy_table_queries = [staging_songs_copy]
-insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
+#insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
+#temp for test
+insert_table_queries = [songplay_table_insert]
