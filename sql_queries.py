@@ -153,7 +153,7 @@ staging_songs_copy = ("""
 COPY {} FROM {} 
 credentials 'aws_iam_role={}'
 FORMAT AS json 'auto';
-""").format("STAGING.SONGS",config['S3']['SONG_DATA_TEST'],config['IAM_ROLE']['ARN'])
+""").format("STAGING.SONGS",config['S3']['SONG_DATA'],config['IAM_ROLE']['ARN'])
 
 
 # FINAL TABLES
