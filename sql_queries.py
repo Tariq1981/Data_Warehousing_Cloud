@@ -300,6 +300,6 @@ drop_table_queries = [staging_events_table_drop, staging_songs_table_drop, songp
 copy_table_queries = [staging_events_copy, staging_songs_copy]
 #temp for testing
 #copy_table_queries = [staging_songs_copy]
-#insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
+insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
 #temp for test
-insert_table_queries = [time_table_insert]
+#insert_table_queries = [time_table_insert]
