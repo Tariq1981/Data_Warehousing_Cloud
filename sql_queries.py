@@ -176,18 +176,19 @@ WHERE TGT.start_time is null AND page='NextSong';
 
 user_table_insert = ("""
 INSERT INTO MODEL.USERS(user_id,first_name,last_name,gender,level)
-SELECT userId,firstname,lastname,gender,level
+SELECT SUSR.userId,SUSR.firstname,SUSR.lastname,SUSR.gender,SUSR.level
 FROM
 (
     SELECT userId,firstname,lastname,gender,level
     FROM
     (
-        SELECT userId,firstname,lastname,gender,level,ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY ts DESC) R_RANK
+        SELECT userId,firstname,lastname,gender,level,ROW_NUMBER() OVER(PARTITION BY userId ORDER BY ts DESC) R_RANK
         FROM STAGING.EVENTS
+        WHERE userId IS NOT NULL
     ) X
     WHERE R_RANK = 1
 ) SUSR
-LEFT OUTER JOIN MODEL.USERS MUSR ON SUSR.user_id = MUSR.user_id
+LEFT OUTER JOIN MODEL.USERS MUSR ON SUSR.userId = MUSR.user_id
 WHERE MUSR.user_id IS NULL;
 
 UPDATE MODEL.USERS
@@ -197,12 +198,13 @@ FROM
     SELECT userId,level
     FROM
     (
-        SELECT userId,level,ROW_NUMBER() OVER(PARTITION BY user_id ORDER BY ts DESC) R_RANK
+        SELECT userId,level,ROW_NUMBER() OVER(PARTITION BY userId ORDER BY ts DESC) R_RANK
         FROM STAGING.EVENTS
+        WHERE userId IS NOT NULL
     ) X
     WHERE R_RANK = 1
 ) SUSR
-WHERE MODEL.USERS.user_id = SUSR.userId;
+WHERE MODEL.USERS.user_id = SUSR.userId AND MODEL.USERS.level <> SUSR.level;
 
 """)
 
@@ -295,4 +297,4 @@ copy_table_queries = [staging_events_copy, staging_songs_copy]
 #copy_table_queries = [staging_songs_copy]
 #insert_table_queries = [songplay_table_insert, user_table_insert, song_table_insert, artist_table_insert, time_table_insert]
 #temp for test
-insert_table_queries = [songplay_table_insert]
+insert_table_queries = [user_table_insert]
